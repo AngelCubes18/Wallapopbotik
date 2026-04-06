@@ -1,10 +1,9 @@
 import discord
 from discord.ext import commands, tasks
 import json
-import re
-import asyncio
 from wallapop import WallapopClient
 from storage import Storage
+import asyncio
 
 # ── Cargar configuración ──────────────────────────────────────────────────────
 with open("config.json", "r") as f:
@@ -15,9 +14,11 @@ CHECK_EVERY = config.get("check_interval_seconds", 120)
 
 # ── Bot setup ─────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
-intents.message_content = True
 
-bot     = commands.Bot(command_prefix="!", intents=intents)
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+bot     = commands.Bot(intents=intents, loop=loop)
 storage = Storage("data.json")
 client  = WallapopClient()
 
@@ -91,7 +92,7 @@ def build_embed(item: dict, alert: dict) -> discord.Embed:
         title       = item.get("title", "Sin título")[:256],
         url         = item.get("url", ""),
         description = item.get("description", "")[:300] or "*Sin descripción*",
-        color       = discord.Color.from_str("#59CBE8"),
+        color       = discord.Color.from_rgb(89, 203, 232),
     )
     embed.set_author(name=f"🔔 Nueva alerta: {alert['keyword'].upper()}")
     embed.add_field(name="💶 Precio",    value=price_str,                 inline=True)
@@ -112,20 +113,20 @@ async def on_ready():
     print(f"✅  Bot conectado como {bot.user}  |  Revisando cada {CHECK_EVERY}s")
 
 
-@bot.command(name="alerta")
-async def add_alert(ctx, *, raw: str):
+@bot.slash_command(name="alerta", description="TO CHANGE")
+async def add_alert(
+        ctx, 
+        keyword: str = discord.Option(str, "TO CHANGE", required=True), 
+        max_price: int = discord.Option(int, "TO CHANGE", required=False), 
+        min_price: int = discord.Option(int, "TO CHANGE", required=False)
+    ):
     """
     Crea una alerta. Admite términos con espacios.
     Uso:
-      !alerta mini pc
-      !alerta mini pc 300
-      !alerta mini pc 300 50
+      /alerta mini pc
+      /alerta mini pc 300
+      /alerta mini pc 300 50
     """
-    keyword, max_price, min_price = parse_args(raw)
-
-    if not keyword:
-        await ctx.send("❌ Debes indicar al menos un término de búsqueda.")
-        return
 
     alert_id = storage.add_alert(
         channel_id = ctx.channel.id,
@@ -149,14 +150,17 @@ async def add_alert(ctx, *, raw: str):
         color       = discord.Color.green(),
     )
     embed.set_footer(text=f"ID de alerta: {alert_id}")
-    await ctx.send(embed=embed)
+    await ctx.respond(embed=embed)
 
 
-@bot.command(name="alertas")
-async def list_alerts(ctx):
+@bot.slash_command(name="alertas", description="TO CHANGE")
+async def list_alerts(
+        ctx
+    ):
+
     alerts = [a for a in storage.get_alerts() if a["channel_id"] == ctx.channel.id]
     if not alerts:
-        await ctx.send("📭 No hay alertas activas en este canal.")
+        await ctx.respond("📭 No hay alertas activas en este canal.")
         return
     embed = discord.Embed(title="🔔 Alertas activas en este canal", color=discord.Color.blue())
     for a in alerts:
@@ -171,20 +175,29 @@ async def list_alerts(ctx):
             value = price_txt,
             inline=False,
         )
-    await ctx.send(embed=embed)
+    await ctx.respond(embed=embed)
 
 
-@bot.command(name="eliminar")
-async def remove_alert(ctx, alert_id: str):
+@bot.slash_command(name="eliminar", description="TO CHANGE")
+async def remove_alert(
+        ctx, 
+        alert_id: str = discord.Option(str, "TO CHANGE", required=True)
+    ):
+
     removed = storage.remove_alert(alert_id)
     if removed:
-        await ctx.send(f"🗑️ Alerta `{alert_id}` eliminada correctamente.")
+        await ctx.respond(f"🗑️ Alerta `{alert_id}` eliminada correctamente.")
     else:
-        await ctx.send(f"❌ No encontré ninguna alerta con ID `{alert_id}`.")
+        await ctx.respond(f"❌ No encontré ninguna alerta con ID `{alert_id}`.")
 
 
-@bot.command(name="buscar")
-async def search_now(ctx, *, raw: str):
+@bot.slash_command(name="buscar", description="TO CHANGE")
+async def search_now(
+        ctx,
+        keyword: str = discord.Option(str, "TO CHANGE", required=True), 
+        max_price: int = discord.Option(int, "TO CHANGE", required=False), 
+        min_price: int = discord.Option(int, "TO CHANGE", required=False)
+    ):
     """
     Búsqueda manual. Admite términos con espacios.
     Uso:
@@ -192,30 +205,25 @@ async def search_now(ctx, *, raw: str):
       !buscar mini pc 300
       !buscar mini pc 300 50
     """
-    keyword, max_price, min_price = parse_args(raw)
-
-    if not keyword:
-        await ctx.send("❌ Debes indicar al menos un término de búsqueda.")
-        return
 
     async with ctx.typing():
         try:
             items = await client.search(keyword=keyword, min_price=min_price, max_price=max_price)
         except Exception as e:
-            await ctx.send(f"❌ Error al buscar: `{e}`")
+            await ctx.respond(f"❌ Error al buscar: `{e}`")
             return
 
     if not items:
-        await ctx.send(f"😕 No encontré resultados para **{keyword}**.")
+        await ctx.respond(f"😕 No encontré resultados para **{keyword}**.")
         return
 
     alert_ctx = {"keyword": keyword, "id": "manual"}
-    await ctx.send(f"🔎 Primeros **{len(items[:5])}** resultados para **{keyword}**:")
+    await ctx.respond(f"🔎 Primeros **{len(items[:5])}** resultados para **{keyword}**:")
     for item in items[:5]:
-        await ctx.send(embed=build_embed(item, alert_ctx))
+        await ctx.respond(embed=build_embed(item, alert_ctx))
 
 
-@bot.command(name="ayuda")
+@bot.slash_command(name="ayuda", description="TO CHANGE")
 async def help_cmd(ctx):
     embed = discord.Embed(
         title       = "📖 Comandos del Bot de Wallapop",
@@ -236,7 +244,7 @@ async def help_cmd(ctx):
         inline=False,
     )
     embed.set_footer(text=f"Revisión automática cada {CHECK_EVERY} segundos")
-    await ctx.send(embed=embed)
+    await ctx.respond(embed=embed)
 
 
 bot.run(TOKEN)
