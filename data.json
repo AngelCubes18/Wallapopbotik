@@ -1,0 +1,19 @@
+{
+  "alerts": [
+    {
+      "id": "74c71a6e",
+      "channel_id": 1407376406610055211,
+      "keyword": "dell optiplex",
+      "min_price": 60.0,
+      "max_price": 120.0
+    }
+  ],
+  "seen": {
+    "74c71a6e": [
+      "pzpk3n7wk4j3",
+      "0j28kpn9gejy",
+      "qzmm1r3x8lzv",
+      "ejkmwv4l3pzx"
+    ]
+  }
+}
