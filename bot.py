@@ -113,12 +113,12 @@ async def on_ready():
     print(f"✅  Bot conectado como {bot.user}  |  Revisando cada {CHECK_EVERY}s")
 
 
-@bot.slash_command(name="alerta", description="TO CHANGE")
+@bot.slash_command(name="alerta", description="Agregar alerta de nuevo producto publicado")
 async def add_alert(
         ctx, 
-        keyword: str = discord.Option(str, "TO CHANGE", required=True), 
-        max_price: int = discord.Option(int, "TO CHANGE", required=False), 
-        min_price: int = discord.Option(int, "TO CHANGE", required=False)
+        keyword: str = discord.Option(str, "Producto a alertar", required=True), 
+        max_price: int = discord.Option(int, "Máximo precio", required=False), 
+        min_price: int = discord.Option(int, "Mínimo precio", required=False)
     ):
     """
     Crea una alerta. Admite términos con espacios.
@@ -153,7 +153,7 @@ async def add_alert(
     await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="alertas", description="TO CHANGE")
+@bot.slash_command(name="alertas", description="Todos los productos agregados para ser alertados")
 async def list_alerts(
         ctx
     ):
@@ -191,19 +191,19 @@ async def remove_alert(
         await ctx.respond(f"❌ No encontré ninguna alerta con ID `{alert_id}`.")
 
 
-@bot.slash_command(name="buscar", description="TO CHANGE")
+@bot.slash_command(name="buscar", description="Busca productos en base al término y precios")
 async def search_now(
         ctx,
-        keyword: str = discord.Option(str, "TO CHANGE", required=True), 
-        max_price: int = discord.Option(int, "TO CHANGE", required=False), 
-        min_price: int = discord.Option(int, "TO CHANGE", required=False)
+        keyword: str = discord.Option(str, "Producto", required=True), 
+        max_price: int = discord.Option(int, "Precio máximo", required=False), 
+        min_price: int = discord.Option(int, "Precio mínimo", required=False)
     ):
     """
     Búsqueda manual. Admite términos con espacios.
     Uso:
-      !buscar mini pc
-      !buscar mini pc 300
-      !buscar mini pc 300 50
+      /buscar mini pc
+      /buscar mini pc 300
+      /buscar mini pc 300 50
     """
 
     async with ctx.typing():
